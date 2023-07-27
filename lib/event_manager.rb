@@ -1,6 +1,10 @@
 require 'csv'
 require 'google/apis/civicinfo_v2'
 require 'erb'
+require 'date'
+
+$horas = Array.new(24, 0)
+$dias = Array.new(7, 0)
 
 def clean_zipcode(zipcode)
   zipcode.to_s.rjust(5, '0')[0..4]
@@ -49,17 +53,13 @@ def clean_phones(phones)
 end
 
 def peak_hour(registrations)
-  # Extract the hour component from the registration date and time
-
-  # Count the number of registrations for each hour
-
-  # Find the hour(s) with the highest number of registrations
-
-  #strptime, #strftime, and #hour
+  datahoras = DateTime.strptime(registrations, "%m/%d/%y %H:%M").strftime("%H").to_i
+  $horas[datahoras] += 1
 end
 
 def peak_day(registrations)
-  # Use Date#wday to find out the day of the week.
+  datadias = Date.strptime(registrations, "%m/%d/%y %H:%M").wday
+  $dias[datadias] += 1
 end
 
 puts 'EventManager initialized.'
@@ -76,17 +76,20 @@ erb_template = ERB.new template_letter
 contents.each do |row|
   id = row[0]
   registrations = row[1]
-  peak_hours = peak_hour(registrations)
-  best_day = peak_day(registrations)
   name = row[:first_name]
   zipcode = clean_zipcode(row[:zipcode])
   legislators = legislators_by_zipcode(zipcode)
   phones = clean_phones(row[5])
   form_letter = erb_template.result(binding)
   save_thank_you_letter(id,form_letter)
+  peak_hour(registrations)
+  peak_day(registrations)
 
   puts "#{name} #{zipcode} #{phones}"
 end
 
-puts "Peak registration hour(s): #{peak_hours}"
-puts "Peak registration day(s): #{best_day}"
+peak_hora = $horas.index($horas.compact.max)
+peak_dia = $dias.index($dias.compact.max)
+
+puts "Peak registration hour(s): #{peak_hora}"
+puts "Peak registration day(s): #{peak_dia}"
